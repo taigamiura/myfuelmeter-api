@@ -1,0 +1,19 @@
+name: mainブランチとdevelopブランチへのpushを防止
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'develop'
+
+jobs:
+  deny-push:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: プッシュを拒否
+        # ブランチ名にmain, developが含まれている場合に実行
+        if: contains(github.ref_name, 'main') || contains(github.ref_name, 'develop')
+        run: |
+          echo "${{github.ref_name}}ブランチへの直接プッシュは許可されていません。"
+          exit 1
