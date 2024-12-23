@@ -100,7 +100,7 @@ jobs:
               --head "${{ github.ref_name }}" \
               --label "release" \
               --title "🔀 Merge: releaseブランチからmainブランチへのマージ" \
-              --body "🔀 このプルリクエストは、releaseブランチの変更をmainブランチにマージします。" \
+              --body "🔀 このプルリクエストは、releaseブランチの変更をmainブランチにマージします。"
           fi
 
   tag:
