@@ -1,0 +1,43 @@
+name: ホットフィックスをメインにマージ
+
+on:
+  push:
+    branches:
+      - 'hotfix/*'  # hotfix/*ブランチへのプッシュをトリガー
+
+jobs:
+  merge-hotfix:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Gitの設定
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+      - name: ホットフィックスをメインにマージ
+        run: |
+          HOTFIX_BRANCH="${GITHUB_REF##*/}"
+          # すべてのブランチをフェッチ
+          git fetch origin
+
+          git merge "$HOTFIX_BRANCH" --no-edit
+          # メインブランチに保留中の変更があるか確認
+          if ! git diff --quiet origin/main origin/$HOTFIX_BRANCH; then
+            # 直接マージの代わりにPRを作成
+            gh pr create \
+              --base main \
+              --head "$HOTFIX_BRANCH" \
+              --label "hotfix" \
+              --title "🚨 ホットフィックス: $HOTFIX_BRANCH をメインにマージ" \
+              --body "このPRはhotfix-mergeワークフローによって自動的に作成されました。
+
+              マージする前に変更内容を慎重に確認してください。"
+            exit 0
+          fi
+
+          # マージが成功した場合、mainにプッシュ
+          git push origin mainname: Hotfix Merge to Main
