@@ -1,0 +1,37 @@
+# Goのビルド成果物
+/bin/
+/obj/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go Modules関連
+/vendor/
+go.sum
+
+# IDEやエディタの設定ファイル
+*.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+
+# 環境設定ファイル
+.env
+*.local
+
+# ログファイル
+*.log
+
+# ドキュメント
+*.md
+
+# デバッグファイル
+*.dbg
+
+# キャッシュファイル
+.cache/
