@@ -1,0 +1,32 @@
+# ビルドアーティファクト
+/build
+/dist
+/target
+
+# ソースコード管理
+.git
+.gitignore
+.hg
+.svn
+
+# 環境設定ファイル
+.env
+*.local
+
+# テスト関連
+/tests
+/test-results
+
+# IDEやエディタの設定
+.idea
+.vscode
+*.swp
+*~
+
+# ログファイル
+*.log
+
+# ドキュメント
+README.md
+LICENSE
+*.md
