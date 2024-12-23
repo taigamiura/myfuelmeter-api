@@ -1,0 +1,120 @@
+name: releaseブランチからmainブランチへのプルリクエスト作成
+on:
+  push:
+    branches:
+      - release/*
+
+jobs:
+  lint:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Goまたはprotoファイルの存在をチェック
+        id: check_files
+        run: |
+          if ! git ls-files '*.go' '*.proto' | grep -q .; then
+            echo "Goまたはprotoファイルが見つからないためテストをスキップします。"
+            echo "skip_lint=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Goのセットアップ
+        if: steps.check_files.outputs.skip_lint != 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.2'
+
+      - name: Linterを実行
+        if: steps.check_files.outputs.skip_lint != 'true'
+        run: |
+          go get golang.org/x/lint/golint
+          golint ./... | tee lint_report.txt
+          if [ -s lint_report.txt ]; then
+            echo "Lintエラーが見つかりました:"
+            cat lint_report.txt
+            exit 1
+          fi
+
+  test:
+    runs-on: ubuntu-20.04
+    needs: lint  # lintが成功した場合のみ実行
+
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Goまたはprotoファイルの存在をチェック
+        id: check_files
+        run: |
+          if ! git ls-files '*.go' '*.proto' | grep -q .; then
+            echo "Goまたはprotoファイルが見つからないためテストをスキップします。"
+            echo "skip_test=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Goのセットアップ
+        if: steps.check_files.outputs.skip_test != 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.2'
+
+      - name: Tidy Go modules
+        if: steps.check_files.outputs.skip_test != 'true'
+        run: go mod tidy
+
+      - name: テストを実行
+        if: steps.check_files.outputs.skip_test != 'true'
+        run: go test ./...
+
+  create_pull_request:
+    runs-on: ubuntu-20.04
+    needs: test  # テストが成功した場合のみ実行
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Gitの設定
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+      - name: プルリクエストを作成
+        run: |
+          # すべてのブランチをフェッチする
+          git fetch origin
+
+          # 既存のプルリクエストを取得する
+          PR_NUMBER=$(gh pr list --base main --head "${{ github.ref_name }}" --json number -q '.[0].number')
+
+          # プルリクエストが存在する場合
+          if [ -n "$PR_NUMBER" ]; then
+            echo "プルリクエストが既に存在するため、更新しません。"
+            exit 0
+          else
+            echo "プルリクエストが存在しないため、新しいプルリクエストを作成します。"
+            gh pr create \
+              --base main \
+              --head "${{ github.ref_name }}" \
+              --label "release" \
+              --title "🔀 Merge: releaseブランチからmainブランチへのマージ" \
+              --body "🔀 このプルリクエストは、releaseブランチの変更をmainブランチにマージします。"
+          fi
+
+  tag:
+    runs-on: ubuntu-20.04
+    needs: create_pull_request  # プルリクエスト作成が成功した場合のみ実行
+
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: タグを作成してプッシュ
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="v$(date +'%Y%m%d%H%M%S')"
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
