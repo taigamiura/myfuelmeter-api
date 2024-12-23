@@ -12,8 +12,12 @@ jobs:
 
     steps:
       - name: プッシュを拒否
-        # ブランチ名にmain, developが含まれている場合に実行
-        if: contains(github.ref_name, 'main') || contains(github.ref_name, 'develop')
+        # プルリクエストのマージ以外のプッシュに対して実行
+        if: >
+          (contains(github.ref_name, 'main') || contains(github.ref_name, 'develop') &&
+          github.event_name == 'push' &&
+          !contains(github.event.head_commit.message, 'Merge pull request'))
+
         run: |
-          echo "${{github.ref_name}}ブランチへの直接プッシュは許可されていません。"
+          echo "${{ github.ref_name }}ブランチへの直接プッシュは許可されていません。"
           exit 1
